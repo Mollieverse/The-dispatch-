@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 
 interface NewsAPIArticle {
@@ -42,7 +44,7 @@ async function fetchNewsArticles(): Promise<NewsAPIArticle[]> {
   for (const q of queries) {
     const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=10&apikey=${key}`;
     try {
-      const res = await fetch(url, { next: { revalidate: 300 } });
+      const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) { console.warn(`GNews error for "${q}": ${res.status}`); continue; }
       const data = await res.json();
       if (data.articles) {
@@ -83,41 +85,40 @@ Your job is to take raw article data and produce serious, substantive journalism
 
 STRICT RULES:
 - Only use facts present in the provided articles. Never invent.
-- If something is genuinely unknown, say so directly and specifically — not vaguely.
-- Write like a senior journalist, not a summarizer. No filler phrases like "it is worth noting" or "this highlights the importance of".
-- Headlines must be specific, declarative, and newsworthy — like NYT front page, not a blog post title.
-- "what_happened" is your lead paragraph — make it gripping and informative. Minimum 3 solid sentences.
-- "why_it_matters" must explain real-world consequences to real people. Be specific about who is affected and how.
-- "what_we_know" must be a genuine list of confirmed facts. Each point should be a complete, informative sentence. Minimum 4 points.
-- "what_we_dont_know" must be specific open questions — not generic. What specifically is unclear? Who hasn't responded? What data is missing?
-- "contradictions" must name the contradiction precisely — which source said what. If none, say "No contradictions detected across sources."
-- "dispatch_note" is a 1-sentence editorial observation — the insight a seasoned editor would add. Sharp, opinionated, useful.
+- If something is genuinely unknown, say so directly and specifically.
+- Write like a senior journalist, not a summarizer.
+- Headlines must be specific, declarative, and newsworthy.
+- "what_happened" is your lead paragraph. Minimum 3 solid sentences.
+- "why_it_matters" must explain real-world consequences. Be specific.
+- "what_we_know" must have minimum 4 confirmed facts, each a complete sentence.
+- "what_we_dont_know" must be specific open questions.
+- "contradictions" must name which source said what. If none, say "No contradictions detected."
+- "dispatch_note" is a 1-sentence sharp editorial observation.
 - "category" must be one of: WORLD, TECH, ECONOMY, SCIENCE, CONFLICT
-- "timeline" must have at least 3 entries in chronological order. Be specific with dates/times where available.
-- Cluster related articles into 5–7 major story groups. Prioritise the most significant stories.
-- Confidence score: 85+ means 3+ sources clearly agree. 65–84 means 2 sources or partial agreement. Below 65 means single source or conflict.
+- "timeline" must have at least 3 entries in chronological order.
+- Cluster into 5-7 major story groups.
+- Confidence: 85+ means 3+ sources agree. 65-84 means 2 sources. Below 65 means single or conflicting.
 
-Return ONLY a valid JSON array. No markdown. No preamble. No explanation. Just the JSON.
+Return ONLY valid JSON array. No markdown. No preamble. Just JSON.
 
-Shape:
 [
   {
-    "headline": "Specific, declarative headline under 12 words",
+    "headline": "Specific headline under 12 words",
     "category": "WORLD",
     "confidence": 87,
     "sources_count": 4,
-    "dispatch_note": "One sharp editorial insight from a senior editor",
-    "what_happened": "Gripping, informative lead paragraph of 3+ sentences",
-    "why_it_matters": "Specific real-world consequences for specific people. 3 sentences.",
-    "what_we_know": "• Confirmed fact one, complete sentence\\n• Confirmed fact two\\n• Confirmed fact three\\n• Confirmed fact four",
+    "dispatch_note": "One sharp editorial insight",
+    "what_happened": "Gripping lead paragraph of 3+ sentences",
+    "why_it_matters": "Specific real-world consequences. 3 sentences.",
+    "what_we_know": "• Confirmed fact one\\n• Confirmed fact two\\n• Confirmed fact three\\n• Confirmed fact four",
     "what_we_dont_know": "• Specific open question one\\n• Specific open question two\\n• Specific open question three",
     "contradictions": "Source A reported X while Source B reported Y. Or: No contradictions detected.",
-    "timeline": ["Date/time: specific event", "Date/time: next event", "Date/time: latest"],
+    "timeline": ["Date: specific event", "Date: next event", "Date: latest"],
     "sources": [{ "name": "Source Name", "url": "https://real-url.com" }]
   }
 ]
 
-ARTICLES TO PROCESS:
+ARTICLES:
 ${articleText}`;
 }
 
@@ -182,4 +183,4 @@ export async function GET() {
     console.error("[/api/stories]", message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
-}
+} 
