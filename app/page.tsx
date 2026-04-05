@@ -19,6 +19,13 @@ const LOADER_STEPS = [
   "Finalising The Dispatch…",
 ];
 
+interface TickerItem {
+  title: string;
+  source: string;
+  url: string;
+  publishedAt: string;
+}
+
 export default function Home() {
   const [stories, setStories] = useState<Story[]>([]);
   const [meta, setMeta] = useState<StoriesResponse["meta"] | null>(null);
@@ -28,10 +35,17 @@ export default function Home() {
   const [mobileView, setMobileView] = useState<MobileView>("list");
   const [readProgress, setReadProgress] = useState(0);
   const [loaderStep, setLoaderStep] = useState(0);
+  const [ticker, setTicker] = useState<TickerItem[]>([]);
   const mainRef = useRef<HTMLDivElement>(null);
   const loaderRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Animated loader steps ──────────────────────────────────────
+  useEffect(() => {
+    fetch("/api/ticker")
+      .then((r) => r.json())
+      .then((d) => setTicker(d.headlines ?? []))
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (loading) {
       setLoaderStep(0);
@@ -44,7 +58,6 @@ export default function Home() {
     return () => { if (loaderRef.current) clearInterval(loaderRef.current); };
   }, [loading]);
 
-  // ── Fetch stories ──────────────────────────────────────────────
   const fetchStories = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -64,7 +77,6 @@ export default function Home() {
 
   useEffect(() => { fetchStories(); }, [fetchStories]);
 
-  // ── Keyboard navigation ────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (!stories.length || !active) return;
@@ -76,7 +88,6 @@ export default function Home() {
     return () => window.removeEventListener("keydown", handler);
   }, [stories, active]);
 
-  // ── Reading progress ───────────────────────────────────────────
   useEffect(() => {
     const el = mainRef.current;
     if (!el) return;
@@ -99,16 +110,18 @@ export default function Home() {
     setMobileView("article");
   };
 
+  const tickerText = ticker.length > 0
+    ? ticker.map((t) => `${t.source.toUpperCase()}  ·  ${t.title}`).join("          ◆          ")
+    : "LOADING LIVE WIRE…";
+
   return (
     <div className="app-shell">
-      {/* ── Reading progress bar ── */}
       {active && (
         <div className="read-progress-bar">
           <div className="read-progress-fill" style={{ width: `${readProgress}%` }} />
         </div>
       )}
 
-      {/* ── Header ── */}
       <header className="header">
         <div className="header-brand">
           <div className="header-title">The <span>Dispatch</span></div>
@@ -131,16 +144,26 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ── Sidebar ── */}
+      <div className="ticker-bar">
+        <div className="ticker-label">
+          <div className="ticker-dot" />
+          WIRE
+        </div>
+        <div className="ticker-track">
+          <div className="ticker-content">
+            <span>{tickerText}</span>
+            <span aria-hidden="true">{tickerText}</span>
+          </div>
+        </div>
+      </div>
+
       <div className={`sidebar-wrapper ${mobileView === "list" ? "mobile-visible" : "mobile-hidden"}`}>
         <Sidebar stories={stories} activeId={active?.id ?? null} onSelect={handleSelectStory} meta={meta} loading={loading} />
       </div>
 
-      {/* ── Main panel ── */}
       <main ref={mainRef} className={`main-panel ${mobileView === "article" ? "mobile-visible" : "mobile-hidden"}`}>
         <button className="mobile-back-btn" onClick={() => setMobileView("list")}>← Stories</button>
 
-        {/* Cinematic loader */}
         {loading && stories.length === 0 && (
           <div className="cinematic-loader">
             <div className="loader-masthead">
@@ -148,20 +171,13 @@ export default function Home() {
               <div className="loader-rule" />
             </div>
             <div className="loader-grid">
-              {Array.from({ length: 9 }).map((_, i) => (
-                <div key={i} className="loading-cell" />
-              ))}
+              {Array.from({ length: 9 }).map((_, i) => <div key={i} className="loading-cell" />)}
             </div>
             <div className="loader-step">{LOADER_STEPS[loaderStep]}</div>
             <div className="loader-progress-track">
-              <div
-                className="loader-progress-fill"
-                style={{ width: `${((loaderStep + 1) / LOADER_STEPS.length) * 100}%` }}
-              />
+              <div className="loader-progress-fill" style={{ width: `${((loaderStep + 1) / LOADER_STEPS.length) * 100}%` }} />
             </div>
-            <div className="loader-footnote">
-              Powered by Claude AI · Sourced from live newswires
-            </div>
+            <div className="loader-footnote">Powered by Claude AI · Sourced from live newswires</div>
           </div>
         )}
 
@@ -172,7 +188,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Branded landing — no story selected yet */}
         {!loading && !error && stories.length === 0 && (
           <div className="landing-state">
             <div className="landing-title">The <span>Dispatch</span></div>
@@ -181,14 +196,11 @@ export default function Home() {
               An AI-native newsroom. Real sources, real facts, structured journalism.
               <br />No spin. No filler. Just the brief.
             </p>
-            <button className="landing-btn" onClick={fetchStories}>
-              Begin Today&apos;s Briefing →
-            </button>
+            <button className="landing-btn" onClick={fetchStories}>Begin Today&apos;s Briefing →</button>
           </div>
         )}
 
-        {/* Story selected but loading refresh — show article with overlay */}
-        {loading && stories.length > 0 && active && (
+        {loading && stories.length > 0 && (
           <div className="refresh-overlay">
             <div className="loading-text">Refreshing sources…</div>
           </div>
@@ -207,13 +219,11 @@ export default function Home() {
         )}
       </main>
 
-      {/* ── Insights panel ── */}
       <div className={`insights-wrapper ${mobileView === "insights" ? "mobile-visible" : "mobile-hidden"}`}>
         <button className="mobile-back-btn insights-back" onClick={() => setMobileView("article")}>← Article</button>
         <InsightsPanel story={active} meta={meta} allStories={stories} />
       </div>
 
-      {/* ── Mobile bottom nav ── */}
       <nav className="mobile-nav">
         <button className={`mobile-nav-btn ${mobileView === "list" ? "active" : ""}`} onClick={() => setMobileView("list")}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -240,4 +250,4 @@ export default function Home() {
       </nav>
     </div>
   );
-}
+  } 
