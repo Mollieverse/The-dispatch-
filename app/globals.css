@@ -1358,3 +1358,97 @@ body::before {
   .landing-title { font-size: 36px; }
   .loader-title { font-size: 28px; }
 }
+/* ── Ticker Bar ──────────────────────────────────────────────── */
+.ticker-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  height: 32px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.ticker-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--accent-red);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-right: 1px solid var(--border);
+  height: 100%;
+  flex-shrink: 0;
+  background: rgba(201, 76, 76, 0.06);
+}
+
+.ticker-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent-red);
+  animation: pulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.ticker-track {
+  flex: 1;
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  mask-image: linear-gradient(90deg, transparent 0%, black 3%, black 97%, transparent 100%);
+}
+
+.ticker-content {
+  display: flex;
+  white-space: nowrap;
+  animation: tickerScroll 60s linear infinite;
+}
+
+.ticker-content span {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+  padding-right: 80px;
+}
+
+@keyframes tickerScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.app-shell {
+  display: grid;
+  grid-template-rows: var(--header-h) 32px 1fr;
+  grid-template-columns: var(--sidebar-w) 1fr var(--insights-w);
+  height: 100vh;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .app-shell {
+    grid-template-rows: var(--header-h) 32px 1fr auto;
+    grid-template-columns: 1fr;
+  }
+  .ticker-bar { grid-column: 1; }
+  .sidebar-wrapper,
+  .main-panel,
+  .insights-wrapper {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .mobile-nav { grid-row: 4; }
+}
+
+@media (min-width: 769px) {
+  .app-shell {
+    grid-template-rows: var(--header-h) 32px 1fr;
+    grid-template-columns: var(--sidebar-w) 1fr var(--insights-w);
+  }
+}
